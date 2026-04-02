@@ -238,6 +238,21 @@ def mostrar_pagina_admin():
 
     st.subheader("👑 Panel de Administración")
 
+    # ----- Botón nuevo: generar reporte día anterior 8:00-22:00 -----
+    if st.button("📥 Generar Excel día anterior 8:00-22:00 (almuerzos)", key="btn_excel_dia_anterior"):
+        excel_buffer = generar_excel_dia_anterior_8_22()
+        if excel_buffer:
+            st.download_button(
+                label="Descargar reporte día anterior",
+                data=excel_buffer,
+                file_name=f"reservas_dia_anterior_{(datetime.now()-timedelta(days=1)).strftime('%Y%m%d')}.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                key="download_excel_dia_anterior"
+            )
+        else:
+            st.info(
+                "No se encontraron reservas en el rango 08:00-22:00 del día anterior.")
+
     # Filtros de fecha
     st.write("### 📅 Filtros de búsqueda")
     col1, col2, col3 = st.columns(3)
@@ -880,6 +895,60 @@ def generar_excel_reservas(fecha_inicio=None, fecha_fin=None):
 
     except Exception as e:
         st.error(f"Error al generar Excel avanzado: {e}")
+        return None
+
+
+def obtener_reservas_dia_anterior_8_22():
+    """Obtiene reservas registradas ayer entre 08:00 y 22:00"""
+    try:
+        ahora = datetime.now()
+        ayer = (ahora - timedelta(days=1)).date()
+        inicio = datetime(ayer.year, ayer.month, ayer.day, 8, 0, 0)
+        fin = datetime(ayer.year, ayer.month, ayer.day, 22, 0, 0)
+
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT r.fecha_comida, r.nombre_usuario, COALESCE(u.nombre_completo, u.nombre) AS nombre_completo,
+                   r.desayuno, r.almuerzo, r.cena, r.reservado_en
+            FROM reservas r
+            LEFT JOIN usuarios u ON r.nombre_usuario = u.nombre
+            WHERE r.reservado_en BETWEEN ? AND ?
+            ORDER BY r.reservado_en ASC
+        """, (inicio.isoformat(), fin.isoformat()))
+
+        return cursor.fetchall()
+    except Exception as e:
+        st.error(f"Error al obtener reservas de día anterior: {e}")
+        return []
+
+
+def generar_excel_dia_anterior_8_22():
+    """Genera un Excel para reservas del día anterior entre 08:00 y 22:00 con foco en almuerzos"""
+    try:
+        datos = obtener_reservas_dia_anterior_8_22()
+        if not datos:
+            return None
+
+        df = pd.DataFrame(datos, columns=[
+            "Fecha Comida", "Cédula", "Nombre Completo", "Desayuno", "Almuerzo", "Cena", "Reservado En"
+        ])
+
+        df["Desayuno"] = df["Desayuno"].map({1: "Sí", 0: "No"})
+        df["Almuerzo"] = df["Almuerzo"].map({1: "Sí", 0: "No"})
+        df["Cena"] = df["Cena"].map({1: "Sí", 0: "No"})
+
+        df_almuerzos = df[df["Almuerzo"] == "Sí"].copy()
+
+        buffer = io.BytesIO()
+        with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
+            df.to_excel(writer, index=False, sheet_name="Reservas 08-22")
+            df_almuerzos.to_excel(writer, index=False,
+                                  sheet_name="Solo Almuerzos")
+
+        buffer.seek(0)
+        return buffer
+    except Exception as e:
+        st.error(f"Error al generar Excel de día anterior: {e}")
         return None
 
 
