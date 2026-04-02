@@ -899,8 +899,11 @@ if "usuario" not in st.session_state:
         "Selecciona:",
         ["Iniciar sesión", "Registrarse"],
         index=0 if st.session_state.pantalla == "Iniciar sesión" else 1,
-        key="pantalla"
+        key="radio_pantalla"
     )
+
+    # Actualizar el estado de la pantalla seleccionada
+    st.session_state.pantalla = pantalla
 
     if pantalla == "Iniciar sesión":
         st.write("### Inicia sesión con tu cédula")
