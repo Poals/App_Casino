@@ -947,7 +947,7 @@ if "usuario" not in st.session_state:
 
                     # Cambiar a iniciar sesión y hacer rerun para limpiar campos
                     st.session_state.pantalla = "Iniciar sesión"
-                    st.experimental_rerun()
+                    st.rerun()
             else:
                 st.error("❌ Por favor completa todos los campos")
 else:
