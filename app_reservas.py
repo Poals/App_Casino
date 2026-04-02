@@ -275,6 +275,20 @@ def mostrar_pagina_admin():
         if st.button("🔄 Limpiar filtros", key="limpiar_filtros"):
             st.rerun()
 
+    # Botón para exportar Excel de filtros actuales (por mes)
+    if st.button("📥 Generar Excel filtrado", key="btn_excel_filtrado"):
+        excel_buffer_filtrado = generar_excel_reservas(fecha_inicio.isoformat(), fecha_fin.isoformat())
+        if excel_buffer_filtrado:
+            st.download_button(
+                label="Descargar Excel filtrado",
+                data=excel_buffer_filtrado,
+                file_name=f"reservas_filtradas_{fecha_inicio.strftime('%Y%m%d')}_{fecha_fin.strftime('%Y%m%d')}.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                key="download_excel_filtrado"
+            )
+        else:
+            st.info("No hay datos para generar Excel en el rango de fechas seleccionado.")
+
     # Estadísticas en tiempo real
     st.write("### 📊 Estadísticas en tiempo real")
     estadisticas = obtener_estadisticas(
